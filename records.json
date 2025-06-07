@@ -4,6 +4,11 @@
       "ts": "2025-06-07T14:35:51.524568",
       "boss_channel": "123",
       "notified": false
+    },
+    {
+      "ts": "2025-06-07T14:37:57.635855",
+      "boss_channel": "567",
+      "notified": false
     }
   ]
 }
