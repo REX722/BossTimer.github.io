@@ -4,40 +4,94 @@
   <meta charset="utf-8">
   <title>Boss 重生倒數</title>
   <style>
-    table { border-collapse: collapse; width:100% }
-    th,td{ border:1px solid #ccc; padding:4px 8px; text-align:center }
-    .soon{ color:red }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    .soon {
+      color: red;
+    }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>📋 Boss 重生倒數</h1>
+  <div id="error"></div>
   <table>
     <thead>
-      <tr><th>頻道</th><th>記錄</th><th>倒數45分</th><th>倒數1h8m</th></tr>
+      <tr>
+        <th>Boss 頻道</th>
+        <th>記錄時間</th>
+        <th>倒數 45 分</th>
+        <th>倒數 1 小時 8 分</th>
+      </tr>
     </thead>
     <tbody id="tbl"></tbody>
   </table>
+
   <script>
     async function update() {
-      const resp = await fetch('records.json');
-      const data = await resp.json();
+      const url = `records.json?ts=${Date.now()}`;  // 防止快取
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = '';
+
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        renderTable(data);
+      } catch (err) {
+        document.getElementById('tbl').innerHTML = '';
+        errorDiv.textContent = `載入失敗：${err.message}`;
+        console.error("Fetch or parse error:", err);
+      }
+    }
+
+    function renderTable(data) {
       const now = Date.now();
       const tbody = document.getElementById('tbl');
       tbody.innerHTML = '';
-      for (const [ch, lst] of Object.entries(data)) {
+
+      for (const lst of Object.values(data)) {
         for (const rec of lst) {
           const ts = new Date(rec.ts).getTime();
-          const rem45 = Math.max(0, 45*60*1000 - (now - ts));
-          const rem68 = Math.max(0, (60+8)*60*1000 - (now - ts));
+          const elapsed = now - ts;
+          const rem45 = Math.max(0, 45 * 60 * 1000 - elapsed);
+          const rem68 = Math.max(0, (60 + 8) * 60 * 1000 - elapsed);
+
           const fmt = ms => {
-            if (ms<=0) return '00:00';
-            const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000);
-            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            if (ms <= 0) return '00:00';
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
           };
+
           const tr = document.createElement('tr');
-          if (rem45 <= 5*60*1000 && rem45>0) tr.classList.add('soon');
+          if (rem45 <= 5 * 60 * 1000 && rem45 > 0) {
+            tr.classList.add('soon');
+          }
+
           tr.innerHTML = `
-            <td>${ch}</td>
+            <td>${rec.boss_channel}</td>
             <td>${new Date(rec.ts).toLocaleString()}</td>
             <td>${fmt(rem45)}</td>
             <td>${fmt(rem68)}</td>
@@ -46,6 +100,8 @@
         }
       }
     }
+
+    // 每秒更新一次
     setInterval(update, 1000);
     update();
   </script>
